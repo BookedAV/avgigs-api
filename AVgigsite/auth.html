@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVGigs — Sign In</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <nav class="nav">
+      <a href="index.html" class="nav-brand">AV<span>Gigs</span></a>
+      <ul class="nav-links">
+        <li><a href="jobs.html">Browse Jobs</a></li>
+      </ul>
+      <div class="nav-auth" id="nav-auth">
+        <a href="auth.html?mode=login" class="btn btn-ghost">Log In</a>
+        <a href="auth.html?mode=signup" class="btn btn-primary btn-sm">Sign Up</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="auth-page">
+    <div class="auth-card">
+
+      <!-- ======= SIGN UP FORM ======= -->
+      <div id="signup-form">
+        <h1 class="auth-title">Create Account</h1>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-email">Email</label>
+          <input class="form-input" type="email" id="signup-email" placeholder="you@company.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-password">Password</label>
+          <input class="form-input" type="password" id="signup-password" placeholder="Min 8 characters" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-name">Full Name</label>
+          <input class="form-input" type="text" id="signup-name" placeholder="Jane Doe" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-role">I am a…</label>
+          <select class="form-select" id="signup-role">
+            <option value="client">Client — I need to hire AV crew</option>
+            <option value="freelancer">Freelancer — I'm looking for gigs</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;" id="signup-btn" onclick="handleSignup()">
+          Create Account
+        </button>
+
+        <p class="auth-toggle">
+          Already have an account? <a href="#" onclick="showLogin(); return false;">Log in</a>
+        </p>
+      </div>
+
+      <!-- ======= LOGIN FORM ======= -->
+      <div id="login-form" style="display:none;">
+        <h1 class="auth-title">Welcome Back</h1>
+
+        <div class="form-group">
+          <label class="form-label" for="login-email">Email</label>
+          <input class="form-input" type="email" id="login-email" placeholder="you@company.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input class="form-input" type="password" id="login-password" placeholder="Your password" required>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;" id="login-btn" onclick="handleLogin()">
+          Log In
+        </button>
+
+        <p class="auth-toggle">
+          Don't have an account? <a href="#" onclick="showSignup(); return false;">Sign up</a>
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // Show correct form based on URL param
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'login') showLogin();
+    else showSignup();
+
+    // Pre-select role if passed via URL
+    const urlRole = params.get('role');
+    if (urlRole) document.getElementById('signup-role').value = urlRole;
+
+    function showLogin() {
+      document.getElementById('signup-form').style.display = 'none';
+      document.getElementById('login-form').style.display = 'block';
+    }
+    function showSignup() {
+      document.getElementById('signup-form').style.display = 'block';
+      document.getElementById('login-form').style.display = 'none';
+    }
+
+    async function handleSignup() {
+      const btn = document.getElementById('signup-btn');
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      const name = document.getElementById('signup-name').value.trim();
+      const role = document.getElementById('signup-role').value;
+
+      if (!email || !password || !name) return toast('Fill in all fields', 'error');
+      if (password.length < 8) return toast('Password must be at least 8 characters', 'error');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Creating…';
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name, role } }
+      });
+
+      if (error) {
+        toast(error.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+        return;
+      }
+
+      // Create profile row
+      if (data.user) {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email,
+          full_name: name,
+          role
+        });
+      }
+
+      toast('Account created! Check email to confirm.', 'success');
+      // If session exists immediately (email confirmation disabled), redirect
+      if (data.session) {
+        window.location.href = role === 'client' ? 'dashboard.html' : 'jobs.html';
+      }
+    }
+
+    async function handleLogin() {
+      const btn = document.getElementById('login-btn');
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (!email || !password) return toast('Fill in all fields', 'error');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Logging in…';
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        toast(error.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Log In';
+        return;
+      }
+
+      // Get their role to redirect correctly
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      const dest = profile?.role === 'client' ? 'dashboard.html' : 'jobs.html';
+      window.location.href = dest;
+    }
+  </script>
+</body>
+</html>

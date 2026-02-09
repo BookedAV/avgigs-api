@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVGigs — Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <nav class="nav">
+      <a href="index.html" class="nav-brand">AV<span>Gigs</span></a>
+      <ul class="nav-links">
+        <li><a href="jobs.html">Browse Jobs</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="nav-auth" id="nav-auth"></div>
+    </nav>
+  </header>
+
+  <main class="section">
+    <div class="container">
+
+      <h1 class="section-title">Dashboard</h1>
+
+      <!-- ======= STATS ======= -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-open">-</div>
+          <div class="stat-label">Open Positions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-filled">-</div>
+          <div class="stat-label">Filled</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-apps">-</div>
+          <div class="stat-label">Total Applications</div>
+        </div>
+        <div class="stat-card">
+          <div id="card-status" style="font-size:var(--text-sm);">
+            <span class="text-muted">Loading payment info…</span>
+          </div>
+          <div class="stat-label">Payment Method</div>
+        </div>
+      </div>
+
+      <!-- ======= TABS ======= -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('my-jobs', this)">My Positions</button>
+        <button class="tab" onclick="switchTab('post-job', this)">Post New</button>
+        <button class="tab" onclick="switchTab('payment', this)">Payment</button>
+      </div>
+
+      <!-- ======= TAB: MY JOBS ======= -->
+      <div id="tab-my-jobs" class="tab-content">
+        <div class="jobs-grid" id="my-jobs-grid">
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <p class="empty-state-text">Loading your positions…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======= TAB: POST JOB ======= -->
+      <div id="tab-post-job" class="tab-content" style="display:none;">
+        <div class="card" style="max-width:600px;">
+          <h2 style="font-size:var(--text-lg); font-weight:700; margin-bottom:var(--space-lg);">Post a Position</h2>
+
+          <div class="form-group">
+            <label class="form-label" for="job-title">Position Title</label>
+            <input class="form-input" type="text" id="job-title" placeholder="e.g. A1 Audio Engineer">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-category">Category</label>
+            <select class="form-select" id="job-category">
+              <option value="audio">Audio</option>
+              <option value="video">Video</option>
+              <option value="lighting">Lighting</option>
+              <option value="stagehand">Stagehand</option>
+              <option value="av_tech">AV Tech</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-location">Location</label>
+            <input class="form-input" type="text" id="job-location" placeholder="e.g. Los Angeles, CA">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-date">Event Date</label>
+            <input class="form-input" type="date" id="job-date">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-rate">Hourly Rate ($)</label>
+            <input class="form-input" type="number" id="job-rate" placeholder="50">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-desc">Description</label>
+            <textarea class="form-textarea" id="job-desc" placeholder="Describe the gig — what equipment, how many hours, experience needed…"></textarea>
+          </div>
+
+          <button class="btn btn-primary" id="post-job-btn" onclick="postJob()">Post Position (Free)</button>
+        </div>
+      </div>
+
+      <!-- ======= TAB: PAYMENT ======= -->
+      <div id="tab-payment" class="tab-content" style="display:none;">
+        <div class="card" style="max-width:600px;">
+          <h2 style="font-size:var(--text-lg); font-weight:700; margin-bottom:var(--space-sm);">Payment Method</h2>
+          <p class="text-muted" style="font-size:var(--text-sm); margin-bottom:var(--space-lg);">
+            Your card is only charged the <strong>$25 introduction fee</strong> when you mark a position as filled. Nothing is charged for posting.
+          </p>
+
+          <div id="card-section">
+            <div id="card-element" style="padding:0.75rem; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:var(--space-md);">
+              <!-- Stripe Elements mounts here -->
+            </div>
+            <div id="card-errors" style="color:var(--danger); font-size:var(--text-sm); margin-bottom:var(--space-md);"></div>
+            <button class="btn btn-primary" id="save-card-btn" onclick="saveCard()">Save Card</button>
+          </div>
+
+          <div id="card-saved" style="display:none; padding:var(--space-md); background:var(--accent-dim); border-radius:var(--radius-md);">
+            <p style="color:var(--accent); font-weight:600;">✓ Card on file</p>
+            <p class="text-muted" style="font-size:var(--text-sm); margin-top:var(--space-xs);" id="card-brand-last4"></p>
+            <button class="btn btn-secondary btn-sm mt-md" onclick="showCardForm()">Update Card</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ======= APPLICATIONS MODAL ======= -->
+  <div class="modal-overlay" id="apps-modal">
+    <div class="modal" style="max-width:600px;">
+      <h2 class="modal-title">Applications</h2>
+      <div id="apps-list"></div>
+      <div style="margin-top:var(--space-lg); display:flex; justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('apps-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= CONFIRM FILL MODAL ======= -->
+  <div class="modal-overlay" id="fill-modal">
+    <div class="modal">
+      <h2 class="modal-title">Confirm: Mark Position as Filled</h2>
+      <p class="text-muted" style="font-size:var(--text-sm); margin-bottom:var(--space-lg);">
+        This will charge the <strong style="color:var(--accent);">$25 introduction fee</strong> to your card on file and close the position. This action cannot be undone.
+      </p>
+      <input type="hidden" id="fill-job-id">
+      <div style="display:flex; gap:var(--space-sm); justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('fill-modal')">Cancel</button>
+        <button class="btn btn-primary" id="confirm-fill-btn" onclick="confirmFill()">Charge $25 & Mark Filled</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <footer class="site-footer"><div class="container"><p>&copy; 2025 AVGigs. Marketplace — not an employer.</p></div></footer>
+
+  <!-- Stripe.js -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    /* ============================================
+       DASHBOARD LOGIC
+       ============================================ */
+
+    let currentUser = null;
+    let currentProfile = null;
+    let stripe = null;
+    let elements = null;
+    let cardElement = null;
+
+    // ---- Init ----
+    document.addEventListener('DOMContentLoaded', async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { window.location.href = 'auth.html?mode=login'; return; }
+
+      currentUser = user;
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      currentProfile = data;
+      updateNavAuth(currentUser, currentProfile);
+
+      // Init Stripe Elements
+      stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+      elements = stripe.elements();
+      cardElement = elements.create('card', {
+        style: {
+          base: {
+            color: '#e8e8f0',
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '14px',
+            '::placeholder': { color: '#606078' }
+          }
+        }
+      });
+      cardElement.mount('#card-element');
+      cardElement.on('change', (e) => {
+        document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+      });
+
+      // Load everything
+      loadMyJobs();
+      loadStats();
+      checkPaymentMethod();
+    });
+
+    // ---- Tab switching ----
+    function switchTab(name, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + name).style.display = 'block';
+      btn.classList.add('active');
+    }
+
+    // ---- Stats ----
+    async function loadStats() {
+      const { data: jobs } = await supabase
+        .from('jobs')
+        .select('id, status')
+        .eq('client_id', currentUser.id);
+
+      const open = jobs?.filter(j => j.status === 'open').length || 0;
+      const filled = jobs?.filter(j => j.status === 'filled').length || 0;
+
+      document.getElementById('stat-open').textContent = open;
+      document.getElementById('stat-filled').textContent = filled;
+
+      const jobIds = jobs?.map(j => j.id) || [];
+      if (jobIds.length > 0) {
+        const { count } = await supabase
+          .from('applications')
+          .select('*', { count: 'exact', head: true })
+          .in('job_id', jobIds);
+        document.getElementById('stat-apps').textContent = count || 0;
+      } else {
+        document.getElementById('stat-apps').textContent = '0';
+      }
+    }
+
+    // ---- My Jobs ----
+    async function loadMyJobs() {
+      const grid = document.getElementById('my-jobs-grid');
+
+      const { data: jobs, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('client_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      if (error || !jobs || jobs.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <p class="empty-state-text">No positions yet.</p>
+            <button class="btn btn-primary mt-lg" onclick="switchTab('post-job', document.querySelectorAll('.tab')[1])">Post Your First Position</button>
+          </div>`;
+        return;
+      }
+
+      // Get application counts
+      const jobIds = jobs.map(j => j.id);
+      const { data: apps } = await supabase
+        .from('applications')
+        .select('job_id')
+        .in('job_id', jobIds);
+
+      const appCounts = {};
+      (apps || []).forEach(a => { appCounts[a.job_id] = (appCounts[a.job_id] || 0) + 1; });
+
+      grid.innerHTML = jobs.map(job => {
+        const count = appCounts[job.id] || 0;
+        const statusClass = job.status === 'open' ? 'badge-open' : job.status === 'filled' ? 'badge-filled' : 'badge-closed';
+
+        return `
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">${esc(job.title)}</h3>
+                <div class="card-meta">
+                  <span>📍 ${esc(job.location)}</span>
+                  <span>📅 ${formatDate(job.event_date)}</span>
+                  <span>💰 $${job.rate}/hr</span>
+                </div>
+              </div>
+              <span class="badge ${statusClass}">${job.status}</span>
+            </div>
+            <div class="card-footer">
+              <span class="text-muted" style="font-size:var(--text-sm);">
+                ${count} application${count !== 1 ? 's' : ''}
+              </span>
+              <div style="display:flex; gap:var(--space-sm);">
+                ${count > 0 ? `<button class="btn btn-secondary btn-sm" onclick="viewApplications('${job.id}')">View Apps</button>` : ''}
+                ${job.status === 'open' ? `<button class="btn btn-primary btn-sm" onclick="openFillModal('${job.id}')">Mark Filled</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ---- Post Job ----
+    async function postJob() {
+      const btn = document.getElementById('post-job-btn');
+      const title = document.getElementById('job-title').value.trim();
+      const category = document.getElementById('job-category').value;
+      const location = document.getElementById('job-location').value.trim();
+      const event_date = document.getElementById('job-date').value;
+      const rate = document.getElementById('job-rate').value;
+      const description = document.getElementById('job-desc').value.trim();
+
+      if (!title || !location || !event_date || !rate || !description) {
+        return toast('Please fill in all fields.', 'error');
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Posting…';
+
+      const { error } = await supabase.from('jobs').insert({
+        client_id: currentUser.id,
+        title,
+        category,
+        location,
+        event_date,
+        rate: parseFloat(rate),
+        description,
+        status: 'open'
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'Post Position (Free)';
+
+      if (error) return toast('Error posting job: ' + error.message, 'error');
+
+      toast('Position posted!', 'success');
+      // Clear form
+      ['job-title', 'job-location', 'job-date', 'job-rate', 'job-desc'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      // Switch to my jobs tab
+      switchTab('my-jobs', document.querySelectorAll('.tab')[0]);
+      loadMyJobs();
+      loadStats();
+    }
+
+    // ---- View Applications ----
+    async function viewApplications(jobId) {
+      const list = document.getElementById('apps-list');
+      list.innerHTML = '<div class="spinner"></div>';
+      document.getElementById('apps-modal').classList.add('active');
+
+      const { data: apps } = await supabase
+        .from('applications')
+        .select('*, profiles!applications_freelancer_id_fkey(full_name, email)')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false });
+
+      if (!apps || apps.length === 0) {
+        list.innerHTML = '<p class="text-muted">No applications yet.</p>';
+        return;
+      }
+
+      list.innerHTML = apps.map(app => `
+        <div class="app-item">
+          <div class="app-info">
+            <div class="app-name">${esc(app.profiles?.full_name || 'Freelancer')}</div>
+            <div class="app-detail">${esc(app.profiles?.email || '')}</div>
+            <div class="app-detail" style="margin-top:0.25rem;">${esc(app.message)}</div>
+            ${app.proposed_rate ? `<div class="app-detail">Proposed rate: $${app.proposed_rate}/hr</div>` : ''}
+          </div>
+          <span class="badge badge-${app.status === 'pending' ? 'pending' : app.status === 'accepted' ? 'open' : 'closed'}">${app.status}</span>
+        </div>
+      `).join('');
+    }
+
+    // ---- Mark Filled ----
+    function openFillModal(jobId) {
+      // Check if card is on file
+      if (!currentProfile?.stripe_customer_id || !currentProfile?.has_payment_method) {
+        toast('Add a payment method first — go to the Payment tab.', 'error');
+        switchTab('payment', document.querySelectorAll('.tab')[2]);
+        return;
+      }
+      document.getElementById('fill-job-id').value = jobId;
+      document.getElementById('fill-modal').classList.add('active');
+    }
+
+    async function confirmFill() {
+      const btn = document.getElementById('confirm-fill-btn');
+      const jobId = document.getElementById('fill-job-id').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Charging…';
+
+      try {
+        // Call serverless function to charge the card
+        const res = await fetch(SERVERLESS_BASE_URL + '/api/charge-fill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: jobId,
+            customer_id: currentProfile.stripe_customer_id
+          })
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) throw new Error(result.error || 'Charge failed');
+
+        // Update job status in Supabase
+        await supabase
+          .from('jobs')
+          .update({ status: 'filled', filled_at: new Date().toISOString() })
+          .eq('id', jobId);
+
+        closeModal('fill-modal');
+        toast('Position marked as filled! $25 charged.', 'success');
+        loadMyJobs();
+        loadStats();
+
+      } catch (err) {
+        toast('Charge failed: ' + err.message, 'error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Charge $25 & Mark Filled';
+    }
+
+    // ---- Stripe: Save Card ----
+    async function checkPaymentMethod() {
+      const el = document.getElementById('card-status');
+      if (currentProfile?.has_payment_method) {
+        el.innerHTML = '<span style="color:var(--accent); font-weight:600;">✓ Card on file</span>';
+        document.getElementById('card-section').style.display = 'none';
+        document.getElementById('card-saved').style.display = 'block';
+        document.getElementById('card-brand-last4').textContent =
+          currentProfile.card_brand ? `${currentProfile.card_brand} ••••${currentProfile.card_last4}` : 'Card saved';
+      } else {
+        el.innerHTML = '<span style="color:var(--warning); font-weight:600;">⚠ No card on file</span>';
+      }
+    }
+
+    function showCardForm() {
+      document.getElementById('card-section').style.display = 'block';
+      document.getElementById('card-saved').style.display = 'none';
+    }
+
+    async function saveCard() {
+      const btn = document.getElementById('save-card-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+      try {
+        // 1. Get or create Stripe customer + SetupIntent via serverless function
+        const res = await fetch(SERVERLESS_BASE_URL + '/api/create-setup-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: currentUser.id,
+            email: currentUser.email,
+            customer_id: currentProfile?.stripe_customer_id || null
+          })
+        });
+
+        const { client_secret, customer_id } = await res.json();
+
+        if (!client_secret) throw new Error('Failed to create SetupIntent');
+
+        // 2. Confirm with Stripe.js (card details never touch our server)
+        const { setupIntent, error } = await stripe.confirmCardSetup(client_secret, {
+          payment_method: { card: cardElement }
+        });
+
+        if (error) throw new Error(error.message);
+
+        // 3. Save customer ID + payment method flag to Supabase profile
+        // Also get card details from the payment method
+        const pmRes = await fetch(SERVERLESS_BASE_URL + '/api/get-payment-method', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payment_method_id: setupIntent.payment_method })
+        });
+        const pmData = await pmRes.json();
+
+        await supabase.from('profiles').update({
+          stripe_customer_id: customer_id,
+          stripe_payment_method_id: setupIntent.payment_method,
+          has_payment_method: true,
+          card_brand: pmData.brand || null,
+          card_last4: pmData.last4 || null
+        }).eq('id', currentUser.id);
+
+        // Refresh profile
+        const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+        currentProfile = data;
+
+        toast('Card saved successfully!', 'success');
+        checkPaymentMethod();
+
+      } catch (err) {
+        toast('Error: ' + err.message, 'error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Save Card';
+    }
+  </script>
+</body>
+</html>
