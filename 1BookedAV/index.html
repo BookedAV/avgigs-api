@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVGigs — AV Freelancer Marketplace</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ======= NAV ======= -->
+  <header class="site-header">
+    <nav class="nav">
+      <a href="index.html" class="nav-brand">AV<span>Gigs</span></a>
+      <ul class="nav-links">
+        <li><a href="jobs.html">Browse Jobs</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+      </ul>
+      <div class="nav-auth" id="nav-auth">
+        <!-- Populated by app.js based on auth state -->
+        <a href="auth.html?mode=login" class="btn btn-ghost">Log In</a>
+        <a href="auth.html?mode=signup" class="btn btn-primary btn-sm">Sign Up</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ======= HERO ======= -->
+  <section class="hero">
+    <div class="container">
+      <h1>Crew up.<br>Get <span class="text-accent">paid</span>.</h1>
+      <p>The marketplace connecting AV professionals with gigs. Clients post for free, pay only when the position is filled.</p>
+      <div class="hero-actions">
+        <a href="auth.html?mode=signup&role=client" class="btn btn-primary btn-lg">Post a Position — Free</a>
+        <a href="jobs.html" class="btn btn-secondary btn-lg">Browse Open Gigs</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======= HOW IT WORKS ======= -->
+  <section class="section" id="how-it-works">
+    <div class="container">
+      <h2 class="section-title text-center">How It Works</h2>
+      <div class="steps-grid">
+
+        <div class="step">
+          <div class="step-number">01</div>
+          <h3 class="step-title">Post a Position</h3>
+          <p class="step-desc">Clients describe the gig — role, date, location, rate. Posting is completely free.</p>
+        </div>
+
+        <div class="step">
+          <div class="step-number">02</div>
+          <h3 class="step-title">Add a Card</h3>
+          <p class="step-desc">Clients add a payment method. You're never charged until a position is filled.</p>
+        </div>
+
+        <div class="step">
+          <div class="step-number">03</div>
+          <h3 class="step-title">Freelancers Apply</h3>
+          <p class="step-desc">AV professionals browse and apply. Clients review applications and pick the best fit.</p>
+        </div>
+
+        <div class="step">
+          <div class="step-number">04</div>
+          <h3 class="step-title">Mark Filled → Pay</h3>
+          <p class="step-desc">When the client marks a position as filled, the introduction fee is charged automatically.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======= PRICING ======= -->
+  <section class="section" style="border-top: 1px solid var(--border);">
+    <div class="container text-center">
+      <h2 class="section-title">Simple Pricing</h2>
+      <p class="text-muted" style="max-width: 500px; margin: 0 auto;">
+        Posting is free. You're only charged a flat <strong style="color: var(--accent);">$25 introduction fee</strong> when you mark a position as filled. That's it. No escrow, no payroll, no hidden costs.
+      </p>
+    </div>
+  </section>
+
+  <!-- ======= FOOTER ======= -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2025 AVGigs. We're a marketplace — not an employer.</p>
+    </div>
+  </footer>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

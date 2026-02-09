@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVGigs — Open Positions</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <nav class="nav">
+      <a href="index.html" class="nav-brand">AV<span>Gigs</span></a>
+      <ul class="nav-links">
+        <li><a href="jobs.html">Browse Jobs</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="nav-auth" id="nav-auth">
+        <a href="auth.html?mode=login" class="btn btn-ghost">Log In</a>
+        <a href="auth.html?mode=signup" class="btn btn-primary btn-sm">Sign Up</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="section">
+    <div class="container">
+
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:var(--space-xl);">
+        <h1 class="section-title" style="margin-bottom:0;">Open Positions</h1>
+        <div style="display:flex; gap:var(--space-sm);">
+          <select class="form-select" id="filter-category" style="width:auto;" onchange="loadJobs()">
+            <option value="">All Categories</option>
+            <option value="audio">Audio</option>
+            <option value="video">Video</option>
+            <option value="lighting">Lighting</option>
+            <option value="stagehand">Stagehand</option>
+            <option value="av_tech">AV Tech</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="jobs-grid" id="jobs-grid">
+        <div class="empty-state">
+          <div class="empty-state-icon">📡</div>
+          <p class="empty-state-text">Loading positions…</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ======= APPLY MODAL ======= -->
+  <div class="modal-overlay" id="apply-modal">
+    <div class="modal">
+      <h2 class="modal-title">Apply for this Position</h2>
+      <input type="hidden" id="apply-job-id">
+
+      <div class="form-group">
+        <label class="form-label" for="apply-message">Why are you a good fit?</label>
+        <textarea class="form-textarea" id="apply-message" placeholder="Briefly describe your experience and availability…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="apply-rate">Your Hourly Rate ($)</label>
+        <input class="form-input" type="number" id="apply-rate" placeholder="45">
+      </div>
+
+      <div style="display:flex; gap:var(--space-sm); justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="closeModal('apply-modal')">Cancel</button>
+        <button class="btn btn-primary" id="apply-submit-btn" onclick="submitApplication()">Submit Application</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <footer class="site-footer"><div class="container"><p>&copy; 2025 AVGigs. Marketplace — not an employer.</p></div></footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    let currentUser = null;
+    let currentProfile = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUser = user;
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        currentProfile = data;
+      }
+      updateNavAuth(currentUser, currentProfile);
+      loadJobs();
+    });
+
+    async function loadJobs() {
+      const grid = document.getElementById('jobs-grid');
+      const category = document.getElementById('filter-category').value;
+
+      let query = supabase
+        .from('jobs')
+        .select('*, profiles!jobs_client_id_fkey(full_name)')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+
+      if (category) query = query.eq('category', category);
+
+      const { data: jobs, error } = await query;
+
+      if (error) {
+        grid.innerHTML = '<div class="empty-state"><p class="empty-state-text">Error loading jobs.</p></div>';
+        return;
+      }
+
+      if (!jobs || jobs.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📡</div><p class="empty-state-text">No open positions right now. Check back soon!</p></div>';
+        return;
+      }
+
+      grid.innerHTML = jobs.map(job => `
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">${esc(job.title)}</h3>
+              <div class="card-meta">
+                <span>📍 ${esc(job.location)}</span>
+                <span>📅 ${formatDate(job.event_date)}</span>
+                <span>💰 $${job.rate}/hr</span>
+              </div>
+            </div>
+            <span class="badge badge-open">Open</span>
+          </div>
+          <div class="card-body">
+            <p>${esc(job.description)}</p>
+          </div>
+          <div class="card-footer">
+            <span class="text-muted" style="font-size:var(--text-sm);">
+              Posted by ${esc(job.profiles?.full_name || 'Client')} · ${esc(job.category)}
+            </span>
+            ${currentProfile?.role === 'freelancer'
+              ? `<button class="btn btn-primary btn-sm" onclick="openApply('${job.id}')">Apply</button>`
+              : currentUser
+                ? ''
+                : `<a href="auth.html?mode=signup&role=freelancer" class="btn btn-primary btn-sm">Sign Up to Apply</a>`
+            }
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openApply(jobId) {
+      if (!currentUser) { window.location.href = 'auth.html?mode=login'; return; }
+      document.getElementById('apply-job-id').value = jobId;
+      document.getElementById('apply-message').value = '';
+      document.getElementById('apply-rate').value = '';
+      document.getElementById('apply-modal').classList.add('active');
+    }
+
+    async function submitApplication() {
+      const btn = document.getElementById('apply-submit-btn');
+      const jobId = document.getElementById('apply-job-id').value;
+      const message = document.getElementById('apply-message').value.trim();
+      const rate = document.getElementById('apply-rate').value;
+
+      if (!message) return toast('Please add a message.', 'error');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+
+      // Check if already applied
+      const { data: existing } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('job_id', jobId)
+        .eq('freelancer_id', currentUser.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast('You already applied to this position.', 'error');
+        btn.disabled = false; btn.textContent = 'Submit Application';
+        closeModal('apply-modal');
+        return;
+      }
+
+      const { error } = await supabase.from('applications').insert({
+        job_id: jobId,
+        freelancer_id: currentUser.id,
+        message,
+        proposed_rate: rate ? parseFloat(rate) : null,
+        status: 'pending'
+      });
+
+      btn.disabled = false; btn.textContent = 'Submit Application';
+      closeModal('apply-modal');
+
+      if (error) return toast('Error submitting application.', 'error');
+      toast('Application submitted!', 'success');
+    }
+  </script>
+</body>
+</html>
